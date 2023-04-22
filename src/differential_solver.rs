@@ -67,7 +67,31 @@ pub fn second_order_homogenous_solver(a: f64, b: f64, c: f64, t: f64, initial: I
                 Return::Acceleration => return (root*t).exp() * (root.powi(2)*(constant_a+t*constant_b) + 2.0*constant_b*root)
             }
         },
-        QuadRoot::Complex(x, y) => todo!(),
+        QuadRoot::Complex(p, q) => {
+            match initial {
+                InitialConditions::DisplacementVelocity(x, v) => {
+                    constant_a = x;
+                    constant_b = (v - (x*p)) / q;
+                },
+                InitialConditions::DisplacementAcceleration(x, a) => {
+                    constant_a = x;
+                    constant_b = a - x*(p.powi(2)-q.powi(2)) / (2.0*p*q);
+                },
+                InitialConditions::VelocityAcceleration(v, a) => {
+                    constant_a = - (a - 2.0*p*v) / (p.powi(2) + q.powi(2));
+                    constant_b = (v - constant_a*p) / q;
+                },
+            }
+
+            match return_value {
+                Return::Displacement => return (p*t).exp() * (constant_a*(q*t).cos() + constant_b*(q*t).sin()),
+                Return::Velocity => return (p*t).exp() * ((constant_a*p + constant_b*q)*(q*t).cos() + (constant_b*p - constant_a*q)*(q*t).sin()),
+                Return::Acceleration => {
+                    let sq_diff = p.powi(2) - q.powi(2);
+                    return (p*t).exp() * ( (q*t).cos() * (constant_a * sq_diff + 2.0*constant_b*q*p) + (q*t).sin() * (constant_b*sq_diff) )
+                }
+            }
+        },
     }
 }
 
