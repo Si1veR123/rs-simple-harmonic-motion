@@ -75,20 +75,20 @@ pub fn second_order_homogenous_solver(a: f64, b: f64, c: f64, t: f64, initial: I
                 },
                 InitialConditions::DisplacementAcceleration(x, a) => {
                     constant_a = x;
-                    constant_b = a - x*(p.powi(2)-q.powi(2)) / (2.0*p*q);
+                    constant_b = (a - x*(p.powi(2)-q.powi(2))) / (2.0*p*q);
                 },
                 InitialConditions::VelocityAcceleration(v, a) => {
                     constant_a = - (a - 2.0*p*v) / (p.powi(2) + q.powi(2));
                     constant_b = (v - constant_a*p) / q;
                 },
             }
-
+            
             match return_value {
                 Return::Displacement => return (p*t).exp() * (constant_a*(q*t).cos() + constant_b*(q*t).sin()),
                 Return::Velocity => return (p*t).exp() * ((constant_a*p + constant_b*q)*(q*t).cos() + (constant_b*p - constant_a*q)*(q*t).sin()),
                 Return::Acceleration => {
                     let sq_diff = p.powi(2) - q.powi(2);
-                    return (p*t).exp() * ( (q*t).cos() * (constant_a * sq_diff + 2.0*constant_b*q*p) + (q*t).sin() * (constant_b*sq_diff) )
+                    return (p*t).exp() * ( (q*t).cos() * (constant_a*sq_diff + 2.0*constant_b*q*p) + (q*t).sin() * (constant_b*sq_diff - 2.0*constant_a*q*p) )
                 }
             }
         },
@@ -194,6 +194,55 @@ mod tests {
             let acceleration = second_order_homogenous_solver(1.0, -8.0, 16.0, 2.0, InitialConditions::VelocityAcceleration(2.0, 4.0), Return::Acceleration);
             let error_a = (acceleration - -83466.82364).abs();
             assert!(error_a < 0.00001);
+        }
+    }
+
+    #[test]
+    fn no_roots() {
+        {
+            // initial conditions: displacement and velocity
+            let displacement = second_order_homogenous_solver(2.0, 4.0, 4.0, 2.0, InitialConditions::DisplacementVelocity(2.0, 4.0), Return::Displacement);
+            let error_d = (displacement - 0.6257214489).abs();
+            assert!(error_d < 0.0000000001);
+
+            let velocity = second_order_homogenous_solver(2.0, 4.0, 4.0, 2.0, InitialConditions::DisplacementVelocity(2.0, 4.0), Return::Velocity);
+            let error_v = (velocity - -1.209757598).abs();
+            assert!(error_v < 0.000000001);
+
+            let acceleration = second_order_homogenous_solver(2.0, 4.0, 4.0, 2.0, InitialConditions::DisplacementVelocity(2.0, 4.0), Return::Acceleration);
+            println!("{acceleration}");
+            let error_a = (acceleration - 1.168072299).abs();
+            assert!(error_a < 0.000000001);
+        }
+
+        {
+            // initial conditions: displacement and acceleration
+            let displacement = second_order_homogenous_solver(2.0, 4.0, 4.0, 2.0, InitialConditions::DisplacementAcceleration(2.0, 4.0), Return::Displacement);
+            let error_d = (displacement - -0.3587587496).abs();
+            assert!(error_d < 0.0000000001);
+
+            let velocity = second_order_homogenous_solver(2.0, 4.0, 4.0, 2.0, InitialConditions::DisplacementAcceleration(2.0, 4.0), Return::Velocity);
+            let error_v = (velocity - 0.2252774).abs();
+            assert!(error_v < 0.0000001);
+
+            let acceleration = second_order_homogenous_solver(2.0, 4.0, 4.0, 2.0, InitialConditions::DisplacementAcceleration(2.0, 4.0), Return::Acceleration);
+            let error_a = (acceleration - 0.2669626993).abs();
+            assert!(error_a < 0.0000000001);
+        }
+
+        {
+            // initial conditions: velocity and acceleration
+            let displacement = second_order_homogenous_solver(2.0, 4.0, 4.0, 2.0, InitialConditions::VelocityAcceleration(2.0, 4.0), Return::Displacement);
+            let error_d = (displacement - -0.02084264964).abs();
+            assert!(error_d < 0.00000000001);
+
+            let velocity = second_order_homogenous_solver(2.0, 4.0, 4.0, 2.0, InitialConditions::VelocityAcceleration(2.0, 4.0), Return::Velocity);
+            let error_v = (velocity - 0.6257214489).abs();
+            assert!(error_v < 0.0000000001);
+
+            let acceleration = second_order_homogenous_solver(2.0, 4.0, 4.0, 2.0, InitialConditions::VelocityAcceleration(2.0, 4.0), Return::Acceleration);
+            let error_a = (acceleration - -1.209757598).abs();
+            assert!(error_a < 0.000000001);
         }
     }
 }
